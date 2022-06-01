@@ -1,19 +1,25 @@
 const path = require("path")
 
-exports.createPages = async ({ graphql, actions }) => {
+exports.createPages = async ({ graphql, actions, reporter }) => {
   const { createPage } = actions
 
-  const archiveTemplate = path.resolve('./src/templates/archive.js')
+  const archiveTemplate = path.resolve("./src/templates/archive.js")
 
   const result = await graphql(`
     {
+      wp {
+        readingSettings {
+          postsPerPage
+        }
+      }
       allWpCategory {
         edges {
           node {
             id
             name
-            slug
             count
+            uri
+            slug
           }
         }
       }
@@ -21,13 +27,16 @@ exports.createPages = async ({ graphql, actions }) => {
   `)
 
   // Check for errors
-  if (result.errors) throw new Error(result.error)
+  if (result.errors) {
+    reporter.panicOnBuild(`Something went horrible wrong!`, result.errors)
+    return
+  }
 
-  const { allWpCategory } = result.data
+  const { allWpCategory, wp } = result.data
 
   // Create pages for each category
   allWpCategory.edges.forEach(category => {
-    const postsPerPage = 10
+    const postsPerPage = wp.readingSettings.postsPerPage
     const numberOfPosts = category.node.count
     const numPages = Math.ceil(numberOfPosts / postsPerPage)
 
@@ -37,9 +46,7 @@ exports.createPages = async ({ graphql, actions }) => {
       Array.from({ length: numPages }).forEach((_, i) => {
         createPage({
           path:
-            i === 0
-              ? `/blog/${category.node.slug}`
-              : `/blog/${category.node.slug}/${i + 1}`,
+            i === 0 ? `${category.node.uri}` : `${category.node.uri}${i + 1}`,
           component: archiveTemplate,
           context: {
             limit: postsPerPage,
@@ -48,9 +55,9 @@ exports.createPages = async ({ graphql, actions }) => {
             currentPage: i + 1,
             catId: category.node.id,
             catName: category.node.name,
-            catSlug: category.node.slug,
-            categories: allWpCategory
-          }
+            catUri: category.node.uri,
+            categories: allWpCategory,
+          },
         })
       })
     }
