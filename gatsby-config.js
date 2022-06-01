@@ -29,9 +29,9 @@ module.exports = {
       },
     },
     {
-      resolve: `gatsby-source-wordpress-experimental`,
+      resolve: `gatsby-source-wordpress`,
       options: {
-        url: `http://cakeit.weibenfalk.com/graphql`,
+        url: `https://cakeit-gatsby.ussl.co.il/graphql`,
       },
     },
     `gatsby-plugin-styled-components`,
